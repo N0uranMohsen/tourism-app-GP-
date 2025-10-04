@@ -7,9 +7,9 @@ import { deleteImage, uploadToImageKit } from "../../middleware/fileUpload.js";
 import { msg } from "../../utils/constants/msgs.js";
 import { Post } from "../../../DB/models/post.model.js";
 import { Comment } from "../../../DB/models/comment.model.js";
+import { clientRedis } from "../../../DB/redis.config.js";
 
-
-//==============================get user profile====================================
+//==============================user profile====================================
 
 const getuser = catchError(async (req, res, next) => {
   const user = await User.findById(req.params.id);
@@ -28,8 +28,17 @@ const getuser = catchError(async (req, res, next) => {
   ]);
   res.status(201).json({ msg: "success.", user, posts });
 });
-
+///=========user get his profile ====================
 const getUserprofile = catchError(async (req, res, next) => {
+  const userId = req.user._id.toString();
+  //!check if user in Cahce
+  const cachedUser = await clientRedis.get(`user:${userId}`);
+  if (cachedUser) {
+    return res
+      .status(200)
+      .json({ mesage: "found user from cahce", user: JSON.parse(cachedUser) });
+  }
+
   const user = await User.findById(req.user._id);
   !user ||
     res.status(201).json({
@@ -53,7 +62,10 @@ const getUserprofile = catchError(async (req, res, next) => {
         followingCount: user.followingCount,
       },
     });
-    
+  //!save user data in Cache memory
+  if (user) {
+    await clientRedis.setEx(`user:${userId}`, 3600, JSON.stringify(user));
+  }
   user || next(new AppError("there is no date.", 404));
 });
 //===================get all user=====================
@@ -90,12 +102,22 @@ const updateUserProfile = catchError(async (req, res, next) => {
   const user = await User.findByIdAndUpdate(req.user._id, req.body, {
     new: true,
   });
+  const userId = req.user._id.toString();
+  if (user)
+    await clientRedis.setEx(
+      `user:${userId}`,
+      3600,
+      JSON.stringify(user)
+    );
+
   !user || res.status(201).json({ msg: "updated." });
   user || next(new AppError("there is no date.", 404));
 });
 //=====================delete user profile===========================================================
 const deleteUserProfile = catchError(async (req, res, next) => {
   let finduser = await User.findById(req.user._id);
+ // if(finduser) await clientRedis.del(`user:${req.user._id.toString()}`);
+
   if (!req.body.password)
     return next(new AppError("plaese enter the password", 404));
   else if (bcrypt.compareSync(req.body.password, finduser.password)) {
@@ -139,7 +161,5 @@ export const userInfo = catchError(async (req, res, next) => {
   });
   // res.status(200).json({message:"sucess",data:postTag});
 });
-
-
 
 export { getuser, getUserprofile, updateUserProfile, deleteUserProfile };

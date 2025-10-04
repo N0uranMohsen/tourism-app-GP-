@@ -35,8 +35,6 @@ export const verifyToken = catchError(async (req, res, next) => {
       return next(new AppError("invalid token...", 401));
     }
     payload = decoded;
-    // req.user = decoded
-    // next()
   });
 
   let user = await User.findById(payload._id); //{},null

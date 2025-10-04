@@ -12,7 +12,7 @@ export const sendEmail = async (email,otp) => {
       pass:process.env.PASS,
     },
     tls: {
-      rejectUnauthorized: false, // Ignore self-signed certificate errors
+      rejectUnauthorized: false, // Ignore self-signed certificate errors,not trusted
     },
   });
 

@@ -20,11 +20,13 @@ import path from "path";
 import { handleChatEvents } from "./src/modules/messeges/messages.controller.js";
 import userRouter from "./src/modules/users/user.routes.js";
 import chatRouter from "./src/modules/chatbot/chatbot.routes.js";
+import {redisConnection} from "./DB/redis.config.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
 config({ path: "./.env" });
 dbConn();
+redisConnection();//!redis connection
 app.use(cors());
 app.use(express.json());
 app.use(express.static("uploads"));
@@ -77,10 +79,4 @@ export const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log(socket.id);
   handleChatEvents(socket);
-  //console.log("fiiiii");
-
-  // socket.on("join", (userId) => {
-  //   socket.join(userId);
-  //   // console.log(`User ${userId} joined room ${userId}`);
-  // });
 });
